@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LineSwap</title>
+<meta name="description" content="LineSwap: buy or sell a spot in a real-world queue. MVP prototype with mock data.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: phone-frame prototype with a queue-ticket language (square corners, ticket numbers, LED board) beside a flow panel */
+:root{
+  --page:#E6E8E3; --bg:#F1F2EE; --card:#FFFFFF; --line:#D3D6DC; --fg:#121417; --muted:#555A62;
+  --accent:#2952CC; --accent-soft:#E3E9FA; --board:#121417; --led:#FF9F1C; --ok:#1E7A4A;
+  --font:'Chakra Petch', 'Arial Narrow', Arial, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#0C0E11;--bg:#15181C;--card:#1D2126;--line:#30353D;--fg:#EEF0EC;--muted:#A8AEB8;--accent:#7D9BF0;--accent-soft:#232C45;--board:#0A0B0D;--ok:#5CCB8D;color-scheme:dark}}
+:root[data-theme="dark"]{--page:#0C0E11;--bg:#15181C;--card:#1D2126;--line:#30353D;--fg:#EEF0EC;--muted:#A8AEB8;--accent:#7D9BF0;--accent-soft:#232C45;--board:#0A0B0D;--ok:#5CCB8D;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--page);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.4}
+.page{max-width:980px;margin:0 auto;padding-block:24px 48px;padding-inline:16px;display:flex;flex-wrap:wrap;gap:32px;justify-content:center;align-items:flex-start}
+.proto{width:100%;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.proto h1{font-size:30px;margin:0;font-weight:700;letter-spacing:-.5px}
+.ticketlabel{font-size:13px;font-weight:600;color:var(--accent);border:2px solid var(--accent);padding:4px 12px;letter-spacing:.12em;text-transform:uppercase}
+.phone{width:390px;max-width:100%;height:760px;background:var(--bg);border:10px solid #121417;border-radius:40px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.22)}
+.status{display:flex;justify-content:space-between;padding:12px 22px 6px;font-size:13px;font-weight:600;color:var(--muted)}
+.app{flex:1;overflow-y:auto;padding:6px 18px 18px}
+.screen{display:flex;flex-direction:column;gap:14px}
+h2{font-size:26px;font-weight:700;margin:4px 0 0;line-height:1.1;text-wrap:balance}
+h3{font-size:17px;font-weight:600;margin:0;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.muted{color:var(--muted)}
+.venue{background:var(--card);border:2px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:8px;text-align:left;font:inherit;color:inherit;cursor:pointer;width:100%}
+.venue:hover{border-color:var(--accent)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chip{font-size:12px;font-weight:600;padding:3px 8px;border:1.5px solid var(--line);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.chip.blue{border-color:var(--accent);color:var(--accent)}
+.chip.ok{border-color:var(--ok);color:var(--ok)}
+.wait{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.people{display:flex;gap:4px;flex-wrap:wrap}
+.people i{width:10px;height:16px;background:var(--line);border-radius:5px 5px 2px 2px}
+.people i.me{background:var(--accent)}
+.board{background:var(--board);color:var(--led);padding:16px;display:flex;justify-content:space-between;align-items:center;font-variant-numeric:tabular-nums}
+.board small{display:block;color:#9AA0A8;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.board b{font-size:34px;letter-spacing:.06em}
+.btn{display:block;width:100%;padding:15px;border:2px solid var(--accent);background:var(--accent);color:#fff;font:700 16px var(--font);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn[disabled]{opacity:.5;cursor:default}
+.btn:focus-visible,button:focus-visible{outline:3px solid var(--led);outline-offset:2px}
+.back{background:none;border:0;color:var(--muted);font:600 14px var(--font);cursor:pointer;padding:0;align-self:flex-start;text-transform:uppercase;letter-spacing:.06em}
+.offer{background:var(--card);border:2px solid var(--line);padding:12px 14px;display:flex;align-items:center;gap:12px;width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.offer:hover{border-color:var(--accent)}
+.offer .no{font-size:20px;font-weight:700;color:var(--accent);min-width:64px}
+.offer .t{flex:1;min-width:0}
+.price{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ticket{background:var(--card);border:2px solid var(--fg);display:flex;flex-direction:column}
+.ticket .top{padding:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.ticket .num{font-size:52px;font-weight:700;line-height:1;letter-spacing:.02em}
+.ticket .cut{border-top:2px dashed var(--line);margin:0 12px}
+.ticket .bottom{padding:16px;display:flex;gap:14px;align-items:center}
+.qrbox{background:#fff;padding:8px;border:2px solid var(--fg);flex:none}
+.kv{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.stepper{display:flex;align-items:center;justify-content:space-between;border:2px solid var(--line);background:var(--card)}
+.stepper button{width:56px;height:56px;border:0;background:var(--accent-soft);color:var(--accent);font:700 26px var(--font);cursor:pointer}
+.stepper output{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:2px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:8px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);word-break:break-all}
+.tabs{display:flex;border-top:2px solid var(--line);background:var(--bg);padding:6px 6px 14px}
+.tabs button{flex:1;background:none;border:0;color:var(--muted);font:600 12px var(--font);text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:10px 0;border-top:3px solid transparent}
+.tabs button[aria-current="true"]{color:var(--accent);border-top-color:var(--accent)}
+.toast{position:absolute;left:16px;right:16px;bottom:78px;background:var(--fg);color:var(--bg);padding:12px 16px;font-weight:600;font-size:14px;transform:translateY(20px);opacity:0;transition:.25s;pointer-events:none}
+.toast.show{transform:none;opacity:1}
+.notes{flex:1 1 300px;max-width:420px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.notes h2{font-size:24px}
+.notes ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;color:var(--muted)}
+.notes ol b{color:var(--fg)}
+.disclaimer{border:2px dashed var(--line);padding:12px 14px;color:var(--muted);font-size:13px;margin:0}
+.queue-art{display:flex;gap:10px;align-items:flex-end;height:70px}
+.queue-art i{width:22px;height:46px;background:var(--line);border-radius:11px 11px 0 0;position:relative}
+.queue-art i::before{content:"";position:absolute;top:-20px;left:3px;width:16px;height:16px;border-radius:50%;background:inherit}
+.queue-art i.b{background:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="proto"><h1>LineSwap</h1><span class="ticketlabel">MVP prototype · mock data</span></div>
+
+  <div class="phone" aria-label="LineSwap app prototype">
+    <div class="status"><span>10:14</span><span>Kyiv</span></div>
+    <div class="app" id="app">
+
+      <section class="screen" data-screen="home">
+        <div class="queue-art" aria-hidden="true"><i></i><i></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i></div>
+        <h2>Queues near you</h2>
+        <div id="venues" style="display:flex;flex-direction:column;gap:10px"></div>
+      </section>
+
+      <section class="screen" data-screen="venue" hidden>
+        <button class="back" data-go="home">← All queues</button>
+        <h2 id="vName"></h2>
+        <div class="board"><div><small>Now serving</small><b id="vServing"></b></div><div style="text-align:right"><small>Wait now</small><b id="vWait"></b></div></div>
+        <button class="btn" id="joinBtn">Join the line</button>
+        <h3>Spots for sale</h3>
+        <div id="offers" style="display:flex;flex-direction:column;gap:8px"></div>
+      </section>
+
+      <section class="screen" data-screen="buy" hidden>
+        <button class="back" data-go="venue">← Back</button>
+        <h2>Buy spot <span id="bNo"></span></h2>
+        <div class="card">
+          <div class="row"><span class="muted">Position in line</span><b id="bPos"></b></div>
+          <div class="row"><span class="muted">You'll be served in</span><b id="bEta"></b></div>
+          <div class="row"><span class="muted">You save</span><b id="bSave" style="color:var(--ok)"></b></div>
+          <div class="row"><span class="muted">Price</span><span class="price" id="bPrice"></span></div>
+        </div>
+        <p class="muted" style="margin:0;font-size:13px">Paid in USDC on Solana. The seller gets paid the moment the ticket moves to you.</p>
+        <button class="btn" id="buyBtn">Pay &amp; take the spot</button>
+      </section>
+
+      <section class="screen" data-screen="ticket" hidden>
+        <h2 id="tHead">Your ticket</h2>
+        <div class="ticket">
+          <div class="top"><div><div class="muted" style="font-size:12px;letter-spacing:.1em;text-transform:uppercase" id="tVenue"></div><div class="num" id="tNo"></div></div><span class="chip blue" id="tState">Active</span></div>
+          <div class="cut"></div>
+          <div class="bottom">
+            <div class="qrbox" id="tQr"></div>
+            <div class="kv">
+              <div class="row"><span class="muted">Position</span><b id="tPos"></b></div>
+              <div class="row"><span class="muted">Est. wait</span><b id="tEta"></b></div>
+              <div class="muted" style="font-size:12px">Show this QR at the door. The venue scans it.</div>
+            </div>
+          </div>
+        </div>
+        <div class="people" id="tPeople" aria-label="Your place in line"></div>
+        <div id="sellBox" style="display:flex;flex-direction:column;gap:10px">
+          <h3>Sell my spot</h3>
+          <div class="stepper"><button id="minus" aria-label="Lower price">−</button><output id="sellPrice">3.00 USDC</output><button id="plus" aria-label="Raise price">+</button></div>
+          <div class="muted" style="font-size:13px" id="sellNet"></div>
+          <button class="btn ghost" id="listBtn">List for sale</button>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="sold" hidden>
+        <h2>Spot sold</h2>
+        <div class="card">
+          <div class="row"><span class="muted">Ticket</span><b id="sNo"></b></div>
+          <div class="row"><span class="muted">Buyer paid</span><span class="price" id="sGross"></span></div>
+          <div class="row"><span class="muted">LineSwap fee (5%)</span><span id="sFee"></span></div>
+          <div class="row"><span class="muted">You received</span><span class="price" style="color:var(--ok)" id="sNet"></span></div>
+          <div class="muted" style="font-size:12px">Transaction (mock)</div>
+          <div class="mono" id="sTx"></div>
+        </div>
+        <button class="btn" data-go="home">Back to queues</button>
+      </section>
+
+      <section class="screen" data-screen="tickets" hidden>
+        <h2>My tickets</h2>
+        <div id="ticketList" style="display:flex;flex-direction:column;gap:8px"></div>
+      </section>
+
+      <section class="screen" data-screen="wallet" hidden>
+        <h2>Wallet</h2>
+        <div class="board"><div><small>Balance (mock)</small><b id="bal">25.00</b></div><div style="text-align:right"><small>Currency</small><b>USDC</b></div></div>
+        <h3>History</h3>
+        <div id="history" style="display:flex;flex-direction:column;gap:8px"></div>
+      </section>
+
+    </div>
+    <nav class="tabs" aria-label="App sections">
+      <button data-tab="home" aria-current="true">Queues</button>
+      <button data-tab="tickets" aria-current="false">My tickets</button>
+      <button data-tab="wallet" aria-current="false">Wallet</button>
+    </nav>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <div class="notes">
+    <h2>Try the flow</h2>
+    <ol>
+      <li><b>Open a queue</b>, for example the visa center.</li>
+      <li><b>Buy a spot</b> from the list to jump ahead, or</li>
+      <li><b>Join the line</b> to get your own ticket with a QR code.</li>
+      <li>On your ticket, <b>set a price and list it</b>. A mock buyer appears after a few seconds.</li>
+      <li>Check <b>Wallet</b> to see the money move.</li>
+    </ol>
+    <p class="disclaimer">User-experience prototype for the student hackathon. Venues, wait times, tickets, prices and transactions are mock data. No wallet connects and no money moves.</p>
+    <p class="muted" style="margin:0;font-size:13px">Founder: Oleksandra, KNUBA student</p>
+  </div>
+</div>
+
+<script>
+const venues=[
+ {id:'vfs',name:'Visa Center, Kyiv',serving:'A-028',wait:130,people:46,prefix:'A',offers:[{no:'A-031',pos:3,eta:8,price:6},{no:'A-034',pos:6,eta:20,price:4},{no:'A-039',pos:11,eta:45,price:2.5}]},
+ {id:'clinic',name:'City Clinic No. 3',serving:'K-112',wait:65,people:21,prefix:'K',offers:[{no:'K-115',pos:3,eta:10,price:3},{no:'K-119',pos:7,eta:25,price:1.5}]},
+ {id:'cnap',name:'Administrative Services Center',serving:'C-207',wait:100,people:33,prefix:'C',offers:[{no:'C-211',pos:4,eta:15,price:3.5}]},
+ {id:'cafe',name:'Brunch Club, Podil',serving:'T-14',wait:35,people:12,prefix:'T',offers:[]}
+];
+let v=venues[0],offer=null,ticket=null,price=3,balance=25,listTimer=null;
+const tickets=[],history=[{t:'Top up from card',a:+25}];
+const $=s=>document.querySelector(s);
+const usd=n=>n.toFixed(2)+' USDC';
+const mins=m=>m>=60?Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m':m+' min';
+function show(n){document.querySelectorAll('[data-screen]').forEach(s=>s.hidden=s.dataset.screen!==n);$('#app').scrollTop=0;
+ const tab=n==='tickets'||n==='ticket'?'tickets':n==='wallet'?'wallet':'home';document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===tab))}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2400)}
+function tx(){const a='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';let h='';for(let i=0;i<64;i++)h+=a[Math.random()*a.length|0];return h}
+function qr(seed){let s=seed;const r=()=>(s=(s*9301+49297)%233280)/233280;const n=21,c=5;let o=`<svg width="${n*c}" height="${n*c}" viewBox="0 0 ${n*c} ${n*c}" role="img" aria-label="Ticket QR code (mock)"><rect width="100%" height="100%" fill="#fff"/>`;
+ const f=(x,y)=>`<rect x="${x*c}" y="${y*c}" width="${7*c}" height="${7*c}" fill="#121417"/><rect x="${(x+1)*c}" y="${(y+1)*c}" width="${5*c}" height="${5*c}" fill="#fff"/><rect x="${(x+2)*c}" y="${(y+2)*c}" width="${3*c}" height="${3*c}" fill="#121417"/>`;
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){if((x<8&&y<8)||(x>n-9&&y<8)||(x<8&&y>n-9))continue;if(r()>.5)o+=`<rect x="${x*c}" y="${y*c}" width="${c}" height="${c}" fill="#121417"/>`}
+ return o+f(0,0)+f(n-7,0)+f(0,n-7)+'</svg>'}
+
+function renderVenues(){$('#venues').innerHTML='';venues.forEach(x=>{const b=document.createElement('button');b.className='venue';
+ b.innerHTML=`<div class="row"><b style="font-size:17px">${x.name}</b><span class="wait">${mins(x.wait)}</span></div><div class="row"><span class="muted">${x.people} people in line</span>${x.offers.length?`<span class="chip blue">${x.offers.length} spots for sale</span>`:'<span class="chip">No spots for sale</span>'}</div>`;
+ b.onclick=()=>openVenue(x);$('#venues').appendChild(b)})}
+function openVenue(x){v=x;$('#vName').textContent=x.name;$('#vServing').textContent=x.serving;$('#vWait').textContent=mins(x.wait);
+ const o=$('#offers');o.innerHTML=x.offers.length?'':'<p class="muted" style="margin:0">Nobody is selling a spot here right now.</p>';
+ x.offers.forEach(of=>{const b=document.createElement('button');b.className='offer';b.innerHTML=`<span class="no">${of.no}</span><span class="t"><b>Position ${of.pos}</b><br><span class="muted">Served in ~${mins(of.eta)}</span></span><span class="price">${usd(of.price)}</span>`;b.onclick=()=>openOffer(of);o.appendChild(b)});show('venue')}
+function openOffer(of){offer=of;$('#bNo').textContent=of.no;$('#bPos').textContent=of.pos;$('#bEta').textContent='~'+mins(of.eta);$('#bSave').textContent='~'+mins(v.wait-of.eta);$('#bPrice').textContent=usd(of.price);show('buy')}
+$('#buyBtn').onclick=()=>{if(balance<offer.price){toast('Not enough USDC in the mock wallet.');return}const b=$('#buyBtn');b.disabled=true;b.textContent='Confirming…';
+ setTimeout(()=>{b.disabled=false;b.textContent='Pay & take the spot';balance-=offer.price;history.unshift({t:'Bought '+offer.no+' · '+v.name,a:-offer.price});v.offers=v.offers.filter(o=>o!==offer);
+  ticket={no:offer.no,venue:v.name,pos:offer.pos,eta:offer.eta,bought:true,state:'Active'};tickets.unshift(ticket);toast('Spot '+offer.no+' is yours. Go to the door when called.');renderAll();openTicket(ticket)},1100)};
+$('#joinBtn').onclick=()=>{const n=parseInt(v.serving.split('-')[1])+v.people+1;ticket={no:v.prefix+'-'+String(n).padStart(3,'0'),venue:v.name,pos:v.people+1,eta:v.wait,bought:false,state:'Active'};tickets.unshift(ticket);v.people++;toast('You joined the line as '+ticket.no+'.');renderAll();openTicket(ticket)};
+function openTicket(t){ticket=t;$('#tHead').textContent=t.bought?'Your bought spot':'Your ticket';$('#tVenue').textContent=t.venue;$('#tNo').textContent=t.no;$('#tState').textContent=t.state;$('#tState').className='chip '+(t.state==='Listed'?'ok':'blue');
+ $('#tPos').textContent=t.pos;$('#tEta').textContent='~'+mins(t.eta);$('#tQr').innerHTML=qr(t.no.charCodeAt(0)*31+parseInt(t.no.split('-')[1]));
+ const ppl=$('#tPeople');ppl.innerHTML='';for(let i=1;i<=Math.min(t.pos,40);i++){const e=document.createElement('i');if(i===t.pos)e.className='me';ppl.appendChild(e)}
+ $('#sellBox').hidden=t.bought||t.state==='Sold';$('#listBtn').disabled=t.state==='Listed';$('#listBtn').textContent=t.state==='Listed'?'Listed · waiting for a buyer…':'List for sale';updatePrice();show('ticket')}
+function updatePrice(){$('#sellPrice').textContent=usd(price);$('#sellNet').textContent='You get '+usd(price*.95)+' after the 5% LineSwap fee.'}
+$('#minus').onclick=()=>{price=Math.max(.5,price-.5);updatePrice()};$('#plus').onclick=()=>{price=Math.min(20,price+.5);updatePrice()};
+$('#listBtn').onclick=()=>{ticket.state='Listed';ticket.price=price;openTicket(ticket);toast('Listed for '+usd(price)+'. Mock buyer arriving…');const t=ticket;clearTimeout(listTimer);
+ listTimer=setTimeout(()=>{t.state='Sold';balance+=t.price*.95;history.unshift({t:'Sold '+t.no+' · '+t.venue,a:+(t.price*.95)});renderAll();
+  $('#sNo').textContent=t.no;$('#sGross').textContent=usd(t.price);$('#sFee').textContent='−'+usd(t.price*.05);$('#sNet').textContent=usd(t.price*.95);$('#sTx').textContent=tx();show('sold');toast('Someone bought your spot!')},3500)};
+function renderAll(){renderVenues();$('#bal').textContent=balance.toFixed(2);
+ $('#history').innerHTML=history.map(h=>`<div class="card" style="flex-direction:row;justify-content:space-between;align-items:center"><span>${h.t}</span><span class="price" style="color:${h.a>0?'var(--ok)':'var(--fg)'}">${h.a>0?'+':'−'}${Math.abs(h.a).toFixed(2)}</span></div>`).join('');
+ const tl=$('#ticketList');tl.innerHTML=tickets.length?'':'<p class="muted" style="margin:0">No tickets yet. Join a line or buy a spot.</p>';
+ tickets.forEach(t=>{const b=document.createElement('button');b.className='offer';b.innerHTML=`<span class="no">${t.no}</span><span class="t"><b>${t.venue}</b><br><span class="muted">Position ${t.pos}</span></span><span class="chip ${t.state==='Sold'?'':'blue'}">${t.state}</span>`;b.onclick=()=>{if(t.state!=='Sold')openTicket(t)};tl.appendChild(b)})}
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+renderAll();
+</script>
+</body>
+</html>
